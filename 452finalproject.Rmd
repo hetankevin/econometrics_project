@@ -1,0 +1,117 @@
+---
+title: "ECON 452 Final Project"
+author: "Kevin Tan, Rachel Schonbaum, Jessica Lim, Shubhangi Kumari"
+date: "November 20, 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(foreach)
+library(tidyverse)
+library(glmnet)
+library(caret)
+library(randomForest)
+library(magrittr)
+library(do)
+library(readxl)
+library(writexl)
+library(arrow)
+library(stringr)
+library(pROC)
+library(ranger)
+library(gridExtra)
+library(plotly)
+library(akima)
+library(reshape2)
+library(SmartEDA)
+library(psych)
+```
+
+
+```{r}
+load('test.Rdata')
+test = test %>% as.data.frame()
+sum(test$part_athletics == 0)
+test
+```
+
+```{r}
+testDF = test %>% mutate(score = math_test + reading_test + science_test,
+                         region = factor(region, levels = c(1, 2, 3, 4), 
+                                labels = c('northeast', 'midwest', 'south', 'west')), 
+                         race = factor(race, levels = 1:4,
+                                       labels = c('white','black','hispanic', 'other')),
+                gender = factor(gender, levels = c(1, 2), 
+                                labels = c('male', 'female')),
+                mom_educ = factor(mom_educ, levels = 1:5, 
+                                  labels = c('1to8', '9to11', 'hs', 'some_college', 'college_grad')),
+                home_language_nonenglish = factor(home_language_nonenglish, levels=c(0, 1),
+                                                  labels = c('english', 'nonenglish')),
+                both_parents = factor(both_parents, levels=c(0, 1),
+                                      labels = c('not_both_parents', 'both_parents')),
+                mom_curr_married = factor(mom_curr_married, levels=c(0, 1),
+                                          labels = c('mom_not_married', 'mom_married')),
+                mom_married_at_birth = factor(mom_married_at_birth, levels = c(0, 1),
+                                              labels = c('mom_not_married_at_birth', 'mom_married_at_birth')),
+                family_type = factor(family_type, levels = 1:5,
+                                     labels = c('2_parents_and_siblings', '2_parents_no_siblings', 
+                                                '1_parent_and_siblings', '1_parent_no_siblings',
+                                                'other_family_type')),
+                part_dance = factor(part_dance, levels = c(0, 1),
+                                    labels = c('no_dance', 'dance')),
+                part_art = factor(part_art, levels = c(0, 1),
+                                    labels = c('no_art', 'art')),
+                part_music = factor(part_music, levels = c(0, 1),
+                                    labels = c('no_music', 'music')),
+                part_club = factor(part_club, levels = c(0, 1),
+                                   labels = c('no_club', 'club')),
+                part_athletics = factor(part_athletics, levels = c(0, 1),
+                                        labels = c('no_athletics', 'athletics')),
+                mom_work_status = factor(mom_work_status, levels = 1:3,
+                                         labels = c('mom_works_35_or_more', 
+                                                    'mom_works_less_than_35', 'mom_no_work')),
+                has_library_card = factor(has_library_card, levels = c(0, 1),
+                                          labels = c('no_library_card', 'library_card')),
+                has_home_computer = factor(has_home_computer, levels = c(0, 1),
+                                           labels = c('no_home_computer', 'home_computer')),
+                problem_crowding = factor(problem_crowding, levels=c(0,1),
+                                          labels=c('no_overcrowding', 'overcrowding')),
+                problem_turnover = factor(problem_turnover, levels=c(0,1),
+                                          labels=c('no_turnover', 'turnover')),
+                problem_gangs = factor(problem_gangs, levels=c(0, 1),
+                                       labels = c('no_gangs', 'gangs')),
+                problem_crime = factor(problem_crime, levels=c(0, 1),
+                                       labels = c('no_crime', 'crime')),
+                problem_drugs = factor(problem_drugs, levels = c(0, 1),
+                                       labels = c('no_drugs', 'drugs')),
+                problem_attacks = factor(problem_attacks, levels = c(0, 1),
+                                        labels = c('no_attack', 'attack')),
+                problem_parents = factor(problem_parents, levels = c(0, 1),
+                                         labels = c('no_parents_prob', 'parents_prob')),
+                problem_weapons = factor(problem_weapons, levels=c(0,1),
+                                         labels=c('no_weapons', 'weapons')),
+                pct_minority = factor(pct_minority, levels = 1:5,
+                                      labels = c('less_than_10_minority', '10_to_25_minority',
+                                                 '25_to_50_minority', '50_to_75_minority',
+                                                 '75_or_more_minority')),
+                school_type = factor(school_type, levels = 1:3,
+                                     labels = c('public', 'catholic', 'other_private')),
+                school_has_security = factor(school_has_security, levels = c(0, 1),
+                                             labels = c('no_security', 'security'))
+                ) %>% as.data.frame()
+ExpCustomStat(testDF, Cvar=names(testDF)[sapply(testDF, is.factor)], 
+              gpby = FALSE)
+#%>% write_xlsx('summaryStatisticsCategorical.xlsx')
+```
+
+```{r}
+num_cols = names(testDF)[sapply(testDF, is.numeric)]
+sumStats = testDF[,num_cols] %>% describe
+sumStats$rowindex = rownames(sumStats)
+#sumStats %>% write_xlsx('summaryStatistics.xlsx')
+
+
+
+```
+
