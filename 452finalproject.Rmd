@@ -106,12 +106,83 @@ ExpCustomStat(testDF, Cvar=names(testDF)[sapply(testDF, is.factor)],
 ```
 
 ```{r}
+testDF = data.frame(testDF)
 num_cols = names(testDF)[sapply(testDF, is.numeric)]
 sumStats = testDF[,num_cols] %>% describe
-sumStats$rowindex = rownames(sumStats)
+#sumStats %>% mutate(names = rownames(sumStats))
 #sumStats %>% write_xlsx('summaryStatistics.xlsx')
-
-
+sumStats
 
 ```
+
+
+```{r}
+testDF
+```
+
+```{r}
+lm(score ~ part_dance + part_athletics + part_club + part_music + part_art, data = testDF) %>% summary
+
+```
+
+```{r}
+lm(score ~ part_dance + part_athletics + part_club + part_music + part_art + 
+           family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = testDF) %>% summary
+
+```
+
+
+```{r}
+data = testDF %>% select(-reading_test, -math_test, -science_test)
+trainID = sample(nrow(data), size = floor(0.7*nrow(data)))
+trainSet = data[trainID,]
+testSet = setdiff(data, trainSet)
+
+trainMat = model.matrix(score ~ ., trainSet)[,-1]
+testMat = model.matrix(score ~ ., testSet)[,-1]
+
+cvNet = cv.glmnet(trainMat, trainSet$score, alpha=0.99, 
+                      family="gaussian")
+lambda = cvNet$lambda.min
+lassoReg = glmnet(trainMat, trainSet$score, alpha=0.99, family="gaussian", 
+                  lambda = 1)
+plot(cvNet)
+lambda
+lassoReg$beta
+
+# family_income + mom_work_status + both_parents + mom_educ + problem_crime
+
+# gender, race, mom_educ, siblings, pct_minority, extracurriculars, 
+# home_language_nonenglish, problem_drugs, problem_gangs, problem_attack,
+# has_library_card, has_home_computer, mom_curr_married
+```
+
+
+Indep is composite score
+Dep is all extracurriculars, 
+
+
+
+trainMat = model.matrix(Shariah ~ ., trainSet)[,-1]
+  testMat = model.matrix(Shariah ~ ., testSet)[,-1]
+  sumNeg = length(trainSet$Shariah[trainSet$Shariah==0])
+  sumPos = length(trainSet$Shariah) - sumNeg
+  weights = numeric(length(trainSet$Shariah))
+  weights[trainSet$Shariah==0] = rep(1-sumNeg/(sumNeg+sumPos), sum(trainSet$Shariah==0))
+  weights[trainSet$Shariah==1] = rep(1-sumPos/(sumNeg+sumPos), sum(trainSet$Shariah==1))
+  #c(1-sumNeg/(sumNeg+sumPos), 1-sumPos/(sumNeg+sumPos))
+  if(!lasso){
+    lambda=0
+  }
+  else{
+    cvNet = cv.glmnet(trainMat, as.factor(trainSet$Shariah), alpha=1, 
+                      family="binomial", weights=weights)
+    lambda = cvNet$lambda.min
+  }
+  lassoLog = glmnet(trainMat, as.factor(trainSet$Shariah), alpha=1, family="binomial", 
+                  lambda = lambda, weights=weights)
+  lassoLogTestProb = predict(lassoLog, testMat, type="response")
+
+
+
 
