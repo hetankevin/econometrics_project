@@ -120,17 +120,111 @@ sumStats
 testDF
 ```
 
+
+
+
+Test 1 and 3
+
 ```{r}
-lm(score ~ part_dance + part_athletics + part_club + part_music + part_art, data = testDF) %>% summary
+testDF %>% mutate(part_extrac = )
+partDF = testDF %>% 
+  mutate(no_part_dance = part_dance == 'no_dance',
+         no_part_athletics = part_athletics == 'no_athletics', 
+         no_part_club = part_club == 'no_club',
+         no_part_music = part_music == 'no_music',
+         no_part_art = part_art == 'no_art') %>%
+  mutate(some_part_extra = !(no_part_dance & no_part_athletics & no_part_club & no_part_music & no_part_art)) %>% 
+  select(-no_part_dance, -no_part_athletics, -no_part_club, -no_part_music, -no_part_art)  %>% 
+  mutate(part_total = (part_dance=='dance') + (part_athletics=='athletics') + 
+                    (part_club=='club') + (part_music=='music') + (part_art=='art'))
+lm_reduced = lm(score ~ part_total + 
+           family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = partDF)
+lm_reduced %>% summary
+```
+
+The t-stat on some_part_extraTRUE tests $H_0 : partExtra = 0$, or whether there is any effect of extracurriculars on test scores at all.
+
+```{r}
+lm_full = lm(score ~ part_dance + part_athletics + part_club + part_music + part_art + 
+           family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = partDF)
+lm_full %>% summary
 
 ```
+
+Now, we want to test if it matters at all what these extracurriculars are. Test H0, all CCAs don't matter, vs H1, there exists an extracurricular 
+
+```{r}
+sum(lm_full$residuals ^ 2) # 14 params 1 intercept
+sum(lm_reduced$residuals ^ 2) # 10 params 1 intercept
+((sum(lm_reduced$residuals ^ 2) - sum(lm_full$residuals ^ 2)) / 4) / (sum(lm_full$residuals ^ 2) / 8090)
+pf(21.64233, 4, 8090) # R rounds output to 1
+qf(0.95, 4, 8090) # need 2.3703 for statsig at 5% level
+```
+
+$F = \frac{(SSR_r - SSR_u) / q}{SSR_u /(n-k-1)} = \frac{(SST(1-R^2_r) - SST(1-R^2_u)) / q}{SST(1-R^2_u)/(n-k-1)} = \frac{1-R^2_r - 1 + R^2_u}{q(1-R^2_u)/(n-k-1)} = \frac{(R^2_u - R^2_r)/q}{(1-R^2_u)/(n-k-1)}$, as $SSR = SST-SSE = SST-R^2(SST) = SST(1-R^2)$
+
+```{r}
+lm_controls = lm(score ~ family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = partDF)
+lm_controls %>% summary
+```
+
+```{r}
+lm_multiple = lm(score ~ part_one + part_multiple +
+           family_income + mom_work_status + both_parents + mom_educ + problem_crime, 
+   data = partDF %>% mutate(part_one = as.numeric(part_total == 1), part_multiple = as.numeric(part_total > 1))) 
+lm_multiple %>% summary
+
+```
+
+```{r}
+lm_extra = lm(score ~ part_dance + part_athletics + part_club + part_music + part_art + 
+           family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = partDF)
+lm_extra %>% summary
+```
+
+```{r}
+sum(lm_extra$residuals ^ 2) # 14 params 1 intercept
+sum(lm_controls$residuals ^ 2) # 10 params 1 intercept
+((sum(lm_controls$residuals ^ 2) - sum(lm_extra$residuals ^ 2)) / 5) / (sum(lm_extra$residuals ^ 2) / 8090) # 41.41747
+pf( 41.41747, 5, 8090) # R rounds output to 1
+qf(0.95, 5, 8090) # need  2.37303 for statsig at 5% level
+```
+
+```{r}
+stargazer(lm_reduced, lm_full, type='text')
+```
+
+
+```{r}
+stargazer(lm_controls, lm_full, type='text')
+```
+
+
+```{r}
+stargazer(lm_multiple, type='text')
+
+```
+
+
+```{r}
+plot(lm_full)
+plot(lm_controls)
+plot(lm_extra)
+```
+
+
 
 ```{r}
 lm(score ~ part_dance + part_athletics + part_club + part_music + part_art + 
-           family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = testDF) %>% summary
-
+           family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = partDF) %>% summary()
 ```
 
+
+```{r}
+partDF %>% select(some_part_extra, part_dance, part_athletics, part_club, part_music, part_art) %>% mutate(part_dance = part_dance=='dance', part_athletics = part_athletics=='athletics', part_club = part_club=='club', part_music = part_music=='music', part_art = part_art=='art') %>% rankMatrix
+```
+
+$SomePartEC := 1-\prod_i^q (1-PartEC_i)$
 
 ```{r}
 data = testDF %>% select(-reading_test, -math_test, -science_test)
