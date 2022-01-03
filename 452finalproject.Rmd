@@ -144,11 +144,15 @@ lm_reduced %>% summary
 
 The t-stat on some_part_extraTRUE tests $H_0 : partExtra = 0$, or whether there is any effect of extracurriculars on test scores at all.
 
+
 ```{r}
 lm_full = lm(score ~ part_dance + part_athletics + part_club + part_music + part_art + 
            family_income + mom_work_status + both_parents + mom_educ + problem_crime, data = partDF)
-lm_full %>% summary
+lm_full %>% summary(correlation=TRUE, symbolic.cor=TRUE)
 
+```
+```{r}
+partDF %>% select(score) %>% max
 ```
 
 Now, we want to test if it matters at all what these extracurriculars are. Test H0, all CCAs don't matter, vs H1, there exists an extracurricular 
@@ -175,6 +179,7 @@ lm_multiple = lm(score ~ part_one + part_multiple +
 lm_multiple %>% summary
 
 ```
+
 
 ```{r}
 lm_extra = lm(score ~ part_dance + part_athletics + part_club + part_music + part_art + 
@@ -250,6 +255,24 @@ lassoReg$beta
 # home_language_nonenglish, problem_drugs, problem_gangs, problem_attack,
 # has_library_card, has_home_computer, mom_curr_married
 ```
+
+```{r}
+unifs = runif(1000)
+hist(-2*unifs/(1+(2^2)*unifs)+(1/2^2) * log(1+(2^2)*unifs))
+```
+
+```{r}
+hist(-log(1+unifs))
+```
+```{r}
+
+```
+
+
+
+
+
+
 
 
 Indep is composite score
